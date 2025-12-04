@@ -1,22 +1,26 @@
 #!/bin/bash
 
-# Set the Instance ID and path to the .env file
-INSTANCE_ID="i-030da7d31a1dbbffc"
-
-# Retrieve the public IP address of the specified EC2 instance
-ipv4_address=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
-
-# Path to the .env file
+# Path to backend .env file
 file_to_find="../backend/.env.docker"
 
-# Check the current FRONTEND_URL in the .env file
-current_url=$(sed -n "4p" $file_to_find)
+# Get the frontend NodePort dynamically from Kubernetes
+frontend_port=$(kubectl get svc frontend-service -n wanderlust -o jsonpath='{.spec.ports[0].nodePort}')
 
-# Update the .env file if the IP address has changed
-if [[ "$current_url" != "FRONTEND_URL=\"http://${ipv4_address}:5173\"" ]]; then
+# Construct the new FRONTEND_URL
+new_url="FRONTEND_URL=\"http://localhost:${frontend_port}\""
+
+# Read the current FRONTEND_URL value from the file
+current_url=$(grep FRONTEND_URL $file_to_find)
+
+# Update the .env file if the value has changed
+if [[ "$current_url" != "$new_url" ]]; then
     if [ -f $file_to_find ]; then
-        sed -i -e "s|FRONTEND_URL.*|FRONTEND_URL=\"http://${ipv4_address}:5173\"|g" $file_to_find
+        sed -i -e "s|FRONTEND_URL.*|$new_url|g" $file_to_find
+        echo "Updated backend .env.docker with $new_url"
     else
-        echo "ERROR: File not found."
+        echo "ERROR: File not found: $file_to_find"
     fi
+else
+    echo "No update needed. FRONTEND_URL is already set to $new_url"
 fi
+
