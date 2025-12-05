@@ -92,30 +92,29 @@ pipeline {
                 }
             }
         }
-        
-        stage("Docker: Build Images"){
-            steps{
-                script{
-                        dir('backend'){
-                            docker_build("wanderlust-backend-beta","${params.BACKEND_DOCKER_TAG}","rutvikg")
-                        }
-                    
-                        dir('frontend'){
-                            docker_build("wanderlust-frontend-beta","${params.FRONTEND_DOCKER_TAG}","rutvikg")
-                        }
-                }
+stage("Docker: Build Images") {
+    steps {
+        script {
+            dir('backend') {
+                docker_build("wanderlust-backend-beta", "${params.BACKEND_DOCKER_TAG}", "rutvikg")
             }
-        }
-        
-        stage("Docker: Push to DockerHub"){
-            steps{
-                script{
-                    docker_push("wanderlust-backend-beta","${params.BACKEND_DOCKER_TAG}","dockerhub") 
-                    docker_push("wanderlust-frontend-beta","${params.FRONTEND_DOCKER_TAG}","dockerhub")
-                }
+            dir('frontend') {
+                docker_build("wanderlust-frontend-beta", "${params.FRONTEND_DOCKER_TAG}", "rutvikg")
             }
         }
     }
+}
+
+stage("Docker: Push to DockerHub") {
+    steps {
+        script {
+            docker_push("wanderlust-backend-beta", "${params.BACKEND_DOCKER_TAG}", "dockerhub")
+            docker_push("wanderlust-frontend-beta", "${params.FRONTEND_DOCKER_TAG}", "dockerhub")
+        }
+    }
+}
+
+        
     post{
         success{
             archiveArtifacts artifacts: '*.xml', followSymlinks: false
